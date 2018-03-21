@@ -6,10 +6,12 @@ const fs = require('fs')
 const commander = require('commander')
 const chalk = require('chalk')
 const globby = require('globby')
+const {table} = require('table')
 
 const program = commander
-  .option('-v,--verbose', 'verbose logging')
+  .option('-v,--verbose', 'verbose error output')
   .option('-f,--full', 'show full statistics per file')
+  .option('--show-unweighted-rules', 'lists all rules which lack a weighting')
   .parse(process.argv)
 
 // console.log(program)
@@ -27,7 +29,7 @@ const check_valid_node_version = () => {
 
 const requireOptional = (fname, _default) => (
   (fname) => {
-    console.log(fname)
+    // console.log(fname)
     return fs.existsSync(fname) ? require(fname) : _default
   }
 )(path.join(process.cwd(), fname))
@@ -46,28 +48,52 @@ const customFormatter = (results, config) => {
     return accum
   }, {})
 
+  const unweightedRules = {}
+
+  const addUnweighted = message => {
+    let list = unweightedRules[message.ruleId] || (unweightedRules[message.ruleId] = [])
+    list.push(message)
+  }
+
+  const getRuleScore = (message) => {
+    let ruleId = message.ruleId
+    let fallbackScore = (message.severity === 2 ? ERROR_WEIGHT : WARNING_WEIGHT)
+    let score = fallbackScore
+
+    if (ruleId in weightLookup) {
+      score = weightLookup[ruleId]
+    } else {
+      addUnweighted(message)
+    }
+
+    return score
+  }
+
   const convertDebt = obj => {
     // console.log(obj)
     let debtCount = 0
 
     let mappedMessages = obj.messages.map( message => {
-        let ruleId = message.ruleId
-        let fallbackScore = (message.severity === 2 ? ERROR_WEIGHT : WARNING_WEIGHT)
-        let score = weightLookup[message.ruleId] || fallbackScore
+        let score = getRuleScore(message)
 
         debtCount += score
-        message.debt = score
+
+        return Object.assign({}, message, {
+          debt: score
+        })
     })
 
     return {
+      messages: mappedMessages,
       debt: debtCount
     }
   }
 
   let summary = results.results.reduce( (accum, result) => {
     let detail = Object.assign({}, result, convertDebt(result))
+    delete detail.source
 
-    accum.debt += detail.debt
+    accum.totals.debt += detail.debt
     accum.fileDetails.push(detail)
 
     return accum
@@ -77,7 +103,8 @@ const customFormatter = (results, config) => {
       errorCount: results.errorCount,
       warningCount: results.warningCount,
       debt: 0
-    }
+    },
+    unweightedRules
   })
 
   return summary
@@ -90,8 +117,8 @@ const eslintProcess = (() => {
   return (fileList, globalConfig) => {
     const config = globalConfig.eslint
 
-    console.log(config.weights)
-    console.log('\n\n\n\n###########')
+    // console.log(config.weights)
+    // console.log('\n\n\n\n###########')
 
     let cwd = process.cwd()
     // console.log({config, cwd, __dirname})
@@ -152,18 +179,72 @@ const eslintProcess = (() => {
 //   }
 // })()
 
+const verboseReport = (config, results) => {
+  let report = results.fileDetails.reduce( (accum, fileDetail) => {
+    return accum.concat(fileDetail.messages.map( message => {
+      return [
+        `${chalk.yellow(path.relative(__dirname, fileDetail.filePath))} ${message.line}:${message.column}`,
+        `${message.message} (${message.ruleId})`,
+        message.debt
+      ]
+    }))
+  }, [
+    [
+      'file', 'message', 'debt'
+    ].map( title => chalk.cyan.bold(title) )
+  ])
+
+  return `
+### Full Report
+${table(report, {
+  columns: {
+    2: {
+      alignment: 'right'
+    }
+  }
+})}
+`
+}
+
+const loadHistory = (config) => {
+  if (!fs.existsSync(config.report)) {
+    console.log(`no history file found at: ${config.report}`)
+    return []
+  }
+  const content = fs.readFileSync(config.report, 'utf8')
+  const lines = (content || '').split(/[\r\n]+/)
+
+  return lines.filter( line => line.trim().length > 0).map( line => JSON.parse(line) )
+}
+
+const addHistory = (config, entry) => {
+  fs.appendFileSync(config.report, JSON.stringify(entry) + '\n')
+}
+
+const printDelta = delta =>
+  delta > 0
+  ? chalk.bold.red(`+${delta}`)
+  : delta === 0
+    ? chalk.bold.yellow(delta)
+    : chalk.bold.green(delta)
+
 ;(function main() {
   check_valid_node_version()
 
   const defaultConfig = {
+    report: 'analysis_report.jsonl',
     globOptions: {
       gitignore: true,
     }
   }
 
   const userConfig = requireOptional('./analysis.config.js', {message:'no user config'})
-  console.log(userConfig.eslint.weights)
+  // console.log(userConfig.eslint.weights)
   const config = Object.assign({}, defaultConfig, userConfig)
+
+  const history = loadHistory(config)
+  const lastHistoryEntry = history.slice(-1)[0]
+  // console.log('last history', lastHistoryEntry)
 
   // const fileList = globby.sync(config.targets, config.globOptions)
 
@@ -173,13 +254,26 @@ const eslintProcess = (() => {
 
   let esl = eslintProcess(config.targets, config)
 
-  console.dir(esl, {color: true})
+
+  // console.dir(esl, {color: true, depth:6})
   let total = esl.totals.debt
+  let debtDelta = total - ((lastHistoryEntry && lastHistoryEntry.totals.debt) || 0)
+
   console.log(`
-Eslint debt: ${esl.totals.debt} (${esl.totals.errorCount} errors & ${esl.totals.warningCount} warnings)
+${chalk.yellow('Unweighted rules (use --show-unweighted to see more detail):')}
+  ${Object.keys(esl.unweightedRules).join('\n  ')}
+
+${program.verbose && verboseReport(config, esl)}
 ---
-TOTAL DEBT: ${total}
+TOTAL DEBT:  ${chalk.bold(total)} (${esl.totals.errorCount} errors & ${esl.totals.warningCount} warnings)
+SINCE LAST: ${printDelta(debtDelta)}
 ---
   `)
+
+  if (debtDelta !== 0) {
+    console.log(`writing new history log to ${config.report}...`)
+    esl.date = new Date().toISOString()
+    addHistory(config, esl)
+  }
 
 }())
