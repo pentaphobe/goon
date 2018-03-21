@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node --harmony analysis.js"
+    "start": "node --harmony analysis.js",
+    "test": "yarn start --verbose .",
+    "demo": "yarn start -- --no-report tests"
   },
   "license": "MIT",
   "dependencies": {

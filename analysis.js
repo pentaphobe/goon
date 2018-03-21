@@ -5,19 +5,21 @@ const fs = require('fs')
 
 const commander = require('commander')
 const chalk = require('chalk')
-const globby = require('globby')
 const {table} = require('table')
 
 const program = commander
   .option('-v,--verbose', 'verbose error output')
   .option('-f,--full', 'show full statistics per file')
   .option('--show-unweighted-rules', 'lists all rules which lack a weighting')
+  .option('--config', 'override config')
+  .option('-n,--no-report', `don't write to the history report log`)
   .parse(process.argv)
 
 // console.log(program)
 
 const check_valid_node_version = () => {
-  // const [major, minor, patch] = process.versions.node.split('.').map( n => parseInt(n, 10) )
+  // const [major, minor, patch] = process.versions.node
+  //   .split('.').map( n => parseInt(n, 10) )
   const parts = process.versions.node.split('.').map( n => parseInt(n, 10) )
   const major = parts[0]
 
@@ -51,7 +53,8 @@ const customFormatter = (results, config) => {
   const unweightedRules = {}
 
   const addUnweighted = message => {
-    let list = unweightedRules[message.ruleId] || (unweightedRules[message.ruleId] = [])
+    let list = unweightedRules[message.ruleId] ||
+              (unweightedRules[message.ruleId] = [])
     list.push(message)
   }
 
@@ -120,7 +123,7 @@ const eslintProcess = (() => {
     // console.log(config.weights)
     // console.log('\n\n\n\n###########')
 
-    let cwd = process.cwd()
+    // let cwd = process.cwd()
     // console.log({config, cwd, __dirname})
 
     let cli = new CLIEngine(
@@ -238,9 +241,15 @@ const printDelta = delta =>
     }
   }
 
-  const userConfig = requireOptional('./analysis.config.js', {message:'no user config'})
+  const userConfig = requireOptional('./analysis.config.js', {
+    message: 'no user config'
+  })
   // console.log(userConfig.eslint.weights)
   const config = Object.assign({}, defaultConfig, userConfig)
+
+  if (program.args && program.args.length > 0) {
+    config.targets = program.args
+  }
 
   const history = loadHistory(config)
   const lastHistoryEntry = history.slice(-1)[0]
@@ -257,20 +266,21 @@ const printDelta = delta =>
 
   // console.dir(esl, {color: true, depth:6})
   let total = esl.totals.debt
-  let debtDelta = total - ((lastHistoryEntry && lastHistoryEntry.totals.debt) || 0)
+  let debtDelta = total -
+    ((lastHistoryEntry && lastHistoryEntry.totals.debt) || 0)
 
   console.log(`
 ${chalk.yellow('Unweighted rules (use --show-unweighted to see more detail):')}
   ${Object.keys(esl.unweightedRules).join('\n  ')}
 
-${program.verbose && verboseReport(config, esl)}
+${program.verbose ? verboseReport(config, esl) : ''}
 ---
 TOTAL DEBT:  ${chalk.bold(total)} (${esl.totals.errorCount} errors & ${esl.totals.warningCount} warnings)
 SINCE LAST: ${printDelta(debtDelta)}
 ---
   `)
 
-  if (debtDelta !== 0) {
+  if (!program['no-report'] && debtDelta !== 0) {
     console.log(`writing new history log to ${config.report}...`)
     esl.date = new Date().toISOString()
     addHistory(config, esl)

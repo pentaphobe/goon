@@ -8,10 +8,9 @@
 'use strict'
 
 const targets = [
-  // 'sbos-ui/server',
-  // 'sbos-ui/src',
-  // 'libs',
-  '.'
+  'sbos-ui/server',
+  'sbos-ui/src',
+  'libs',
 ]
 
 const severity = {
