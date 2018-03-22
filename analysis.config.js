@@ -57,7 +57,18 @@ module.exports = {
       'no-undef': ['error'],
       'no-unused-vars': ['error'],
 
-      'no-const-assign': ['error']
+      'no-const-assign': ['error'],
+
+
+      'react/forbid-dom-props': ['error', {
+        forbid: [
+          // not included as it would penalise styled-components
+          // 'className',
+          'style'
+        ]
+      }],
+      'react/require-default-props': ['error', { forbidDefaultForRequired: true }],
+
     },
 
     /**
