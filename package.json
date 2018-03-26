@@ -5,13 +5,15 @@
   "scripts": {
     "start": "node --harmony analysis.js",
     "test": "yarn start --verbose .",
-    "demo": "yarn start -- --no-report tests"
+    "demo": "yarn start -- --no-report --verbose tests/**/*.js"
   },
   "license": "MIT",
   "dependencies": {
-    "eslint": "^4.18.2"
+    "eslint": "^4.18.2",
+    "gaze": "^1.1.2"
   },
   "devDependencies": {
+    "commander": "^2.15.1",
     "eslint-config-standard": "^11.0.0",
     "eslint-config-standard-jsx": "^5.0.0",
     "eslint-config-standard-react": "^6.0.0",

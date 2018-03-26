@@ -68,13 +68,16 @@ module.exports = {
         ]
       }],
       'react/require-default-props': ['error', { forbidDefaultForRequired: true }],
-      'jsx/max-depth': ['error', {max: 4}]
+      'react/jsx-max-depth': ['error', {max: 2}]
     },
 
     /**
      *
      * Weights used to calculate a debt metric
      *
+     * Necessary since eslint doesn't support custom severity levels
+     * structured this way to minimise typing, however it's annoying not having
+     * it alongside the eslint overrides
      */
     weights: {
       // default weights used for warnings and errors

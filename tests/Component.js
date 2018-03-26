@@ -23,7 +23,7 @@ const InlineConditionals = props => (
 const UsesClassName = props => (
   <div className='container'>
     <h2 className='container__heading'>Heading</h2>
-    <div className='container__thing'>
+    <div className='container__thing'>    
     </div>
   </div>
 )

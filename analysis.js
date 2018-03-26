@@ -13,6 +13,7 @@ const program = commander
   .option('--show-unweighted-rules', 'lists all rules which lack a weighting')
   .option('--config', 'override config')
   .option('-n,--no-report', `don't write to the history report log`)
+  .option('-w,--watch', 'stay active and recalculate debt on file changes')
   .parse(process.argv)
 
 const check_valid_node_version = () => {
@@ -125,7 +126,9 @@ const eslintProcess = (() => {
 
     let eslintResults = cli.executeOnFiles(fileList)
 
-    return customFormatter(eslintResults, config)
+    return {
+      eslintResults, config
+    }
   }
 })()
 
@@ -178,6 +181,21 @@ const printDelta = delta =>
     ? chalk.bold.yellow(delta)
     : chalk.bold.green(delta)
 
+const customReporter = (esl, debtDelta, config) => {
+  let total = esl.totals.debt
+
+  console.log(`
+${chalk.yellow('Unweighted rules (use --show-unweighted to see more detail):')}
+  ${Object.keys(esl.unweightedRules).join('\n  ')}
+
+${program.verbose ? verboseReport(config, esl) : ''}
+---
+TOTAL DEBT:  ${chalk.bold(total)} (${esl.totals.errorCount} errors & ${esl.totals.warningCount} warnings)
+SINCE LAST: ${printDelta(debtDelta)}
+---
+  `)
+}
+
 ;(function main() {
   check_valid_node_version()
 
@@ -197,29 +215,46 @@ const printDelta = delta =>
     config.targets = program.args
   }
 
-  const history = loadHistory(config)
-  const lastHistoryEntry = history.slice(-1)[0]
+  let eslResults = eslintProcess(config.targets, config)
 
-  let esl = eslintProcess(config.targets, config)
-  let total = esl.totals.debt
-  let debtDelta = total -
+  const update = (eslResults) => {
+    let esl = customFormatter(eslResults.eslintResults, eslResults.config)
+    const history = loadHistory(config)
+    const lastHistoryEntry = history.slice(-1)[0]
+    let debtDelta = esl.totals.debt -
     ((lastHistoryEntry && lastHistoryEntry.totals.debt) || 0)
 
-  console.log(`
-${chalk.yellow('Unweighted rules (use --show-unweighted to see more detail):')}
-  ${Object.keys(esl.unweightedRules).join('\n  ')}
+    customReporter(esl, debtDelta, config)
 
-${program.verbose ? verboseReport(config, esl) : ''}
----
-TOTAL DEBT:  ${chalk.bold(total)} (${esl.totals.errorCount} errors & ${esl.totals.warningCount} warnings)
-SINCE LAST: ${printDelta(debtDelta)}
----
-  `)
+    if (!program['no-report'] && debtDelta !== 0) {
+      console.log(`writing new history log to ${config.report}...`)
+      esl.date = new Date().toISOString()
+      addHistory(config, esl)
+    }
+  }
+// console.log(eslResults.eslintResults)
+  update(eslResults)
 
-  if (!program['no-report'] && debtDelta !== 0) {
-    console.log(`writing new history log to ${config.report}...`)
-    esl.date = new Date().toISOString()
-    addHistory(config, esl)
+  if (program.watch) {
+    const Gaze = require('gaze').Gaze
+    const gaze = new Gaze(config.targets);
+
+    console.log('watching for changes...')
+
+    gaze.on('all', function(event, filepath) {
+      console.log(`got a change ${filepath}`)
+
+      let newResults = eslintProcess([filepath], config).eslintResults.results[0]
+
+      console.log(filepath, newResults)
+
+      // merge in our updated record
+      eslResults.eslintResults.results = eslResults.eslintResults.results.map(
+        record => record.filePath === newResults.filePath ? newResults : record
+      )
+
+      update(eslResults)
+    })
   }
 
 }())
