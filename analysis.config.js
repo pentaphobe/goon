@@ -68,7 +68,7 @@ module.exports = {
         ]
       }],
       'react/require-default-props': ['error', { forbidDefaultForRequired: true }],
-
+      'jsx/max-depth': ['error', {max: 4}]
     },
 
     /**
