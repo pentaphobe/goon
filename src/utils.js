@@ -15,7 +15,10 @@ const requireOptional = (fname, _default) => (
 
 const mergeObject = _.merge
 
+const isDirectory = path => fs.lstatSync(path).isDirectory()
+
 module.exports = {
   requireOptional,
-  mergeObject
+  mergeObject,
+  isDirectory
 }

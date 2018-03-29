@@ -18,7 +18,7 @@ const eslProcessor = require('./src/goon-processor-eslint')
 const reporter = require('./src/goon-reporter-default')
 const customFormatter = require('./src/goon-formatter-default').formatter
 const {loadHistory, addHistory} = require('./src/history')
-const {requireOptional, mergeObject} = require('./src/utils')
+const {requireOptional, mergeObject, isDirectory} = require('./src/utils')
 
 const program = commander
   .usage('[options] [<files or paths> ...]')
@@ -73,10 +73,17 @@ const program = commander
   update(eslResults)
 
   if (program.watch) {
+    // Gaze doesn't appear to assume directories' _contents_ should be watched
+    const targets = config.targets.map( target => {
+      if (isDirectory(target)) {
+        return path.join(target, '**/*')
+      }
+      return target
+    })
     const Gaze = require('gaze').Gaze
-    const gaze = new Gaze(config.targets)
+    const gaze = new Gaze(targets)
 
-    console.log('watching for changes...', config.targets)
+    console.log('watching for changes...', targets)
 
     gaze.on('all', function (event, filepath) {
       console.log(`got a change ${filepath}`)
