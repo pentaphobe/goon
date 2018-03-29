@@ -7,14 +7,13 @@
   },
   "scripts": {
     "start": "node --harmony analysis.js",
-    "test": "yarn start --verbose ./*.js",
-    "demo": "yarn start -- --no-report --verbose tests/**/*.js ./**/*.js !node_modules"
+    "test": "yarn start --verbose \"./*.js\" \"./src/**/*.js\"",
+    "demo": "yarn start -- --no-report --verbose \"tests/**/*.js\" \"./**/*.js\" \"!node_modules\""
   },
   "license": "MIT",
   "dependencies": {
-    "eslint": "^4.18.2",
-    "gaze": "^1.1.2",
     "commander": "^2.15.1",
+    "eslint": "^4.18.2",
     "eslint-config-standard": "^11.0.0",
     "eslint-config-standard-jsx": "^5.0.0",
     "eslint-config-standard-react": "^6.0.0",
@@ -25,8 +24,9 @@
     "eslint-plugin-promise": "^3.7.0",
     "eslint-plugin-react": "^7.7.0",
     "eslint-plugin-standard": "^3.0.1",
+    "gaze": "^1.1.2",
+    "lodash": "^4.17.5",
     "table": "^4.0.3"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }
