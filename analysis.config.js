@@ -1,6 +1,6 @@
 /**
  *
- * Configuration file for the analysis script in libs/analysis.js
+ * Default configuration file
  *
  * Keilin Olsen
  */
@@ -22,6 +22,12 @@ const severity = {
 }
 
 module.exports = {
+  report: 'analysis_report.jsonl',
+
+  globOptions: {
+    gitignore: true
+  },
+
   targets,
 
   eslint: {
@@ -34,7 +40,9 @@ module.exports = {
       /**
        * Stylistic preferences a la ADS
        */
-      'quotes': 1,
+      'quotes': ['error', 'single', {
+        'allowTemplateLiterals': true,
+      }],
       'jsx-quotes': ['error', 'prefer-single'],
 
 
@@ -42,7 +50,7 @@ module.exports = {
        * Hardcore issues
        */
       // cyclomatic complexity
-      'complexity': ['error', {max:5}],
+      'complexity': ['error', {max: 5}],
       'max-nested-callbacks': ['error', {max: 5}],
       'max-params': ['error', {max: 10}],
       'max-statements': ['error', {max: 15}],
@@ -93,7 +101,7 @@ module.exports = {
           weight: severity.style,
           rules: [
             'quotes', 'jsx-quotes',
-            'max-len'
+            'max-len', 'comma-dangle', 'no-multiple-empty-lines'
           ]
         },
 
@@ -135,7 +143,4 @@ module.exports = {
       ]
     }
   },
-
-  acorn: {
-  }
 }

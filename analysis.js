@@ -1,3 +1,5 @@
+#!/usr/bin/env node --harmony
+
 'use strict'
 
 const path = require('path')
@@ -7,7 +9,11 @@ const commander = require('commander')
 const chalk = require('chalk')
 const {table} = require('table')
 
+const CONFIG_FILE = 'analysis.config.js'
+const scriptDir = path.dirname(__filename)
+
 const program = commander
+  .usage('[options] [<files or paths> ...]')
   .option('-v,--verbose', 'verbose error output')
   .option('-f,--full', 'show full statistics per file')
   .option('--show-unweighted-rules', 'lists all rules which lack a weighting')
@@ -26,7 +32,6 @@ const check_valid_node_version = () => {
     throw new Error('this script requires node version 6 or above')
   }
 }
-
 
 const requireOptional = (fname, _default) => (
   (fname) => {
@@ -75,13 +80,13 @@ const customFormatter = (results, config) => {
     let debtCount = 0
 
     let mappedMessages = obj.messages.map( message => {
-        let score = getRuleScore(message)
+      let score = getRuleScore(message)
 
-        debtCount += score
+      debtCount += score
 
-        return Object.assign({}, message, {
-          debt: score
-        })
+      return Object.assign({}, message, {
+        debt: score
+      })
     })
 
     return {
@@ -148,7 +153,7 @@ const verboseReport = (config, results) => {
   ])
 
   return `
-### Full Report
+${chalk.yellow('### Full Report')}
 ${table(report, {
   columns: {
     2: {
@@ -167,7 +172,13 @@ const loadHistory = (config) => {
   const content = fs.readFileSync(config.report, 'utf8')
   const lines = (content || '').split(/[\r\n]+/)
 
-  return lines.filter( line => line.trim().length > 0).map( line => JSON.parse(line) )
+  return lines
+    // remove comment lines
+    .filter( line => line.match(/^\s*#/))
+    // remove blank lines
+    .filter( line => line.trim().length > 0)
+    // parse lines
+    .map( line => JSON.parse(line) )
 }
 
 const addHistory = (config, entry) => {
@@ -176,10 +187,10 @@ const addHistory = (config, entry) => {
 
 const printDelta = delta =>
   delta > 0
-  ? chalk.bold.red(`+${delta}`)
-  : delta === 0
-    ? chalk.bold.yellow(delta)
-    : chalk.bold.green(delta)
+    ? chalk.bold.red(`+${delta}`)
+    : delta === 0
+      ? chalk.bold.yellow(delta)
+      : chalk.bold.green(delta)
 
 const customReporter = (esl, debtDelta, config) => {
   let total = esl.totals.debt
@@ -199,20 +210,21 @@ SINCE LAST: ${printDelta(debtDelta)}
 ;(function main() {
   check_valid_node_version()
 
-  const defaultConfig = {
-    report: 'analysis_report.jsonl',
-    globOptions: {
-      gitignore: true,
-    }
-  }
+  const defaultConfig = require(path.join(scriptDir, CONFIG_FILE))
 
-  const userConfig = requireOptional('./analysis.config.js', {
+  const userConfig = requireOptional(path.join('.', CONFIG_FILE), {
     message: 'no user config'
   })
   const config = Object.assign({}, defaultConfig, userConfig)
 
   if (program.args && program.args.length > 0) {
     config.targets = program.args
+  }
+
+  if (!config.targets || config.targets.length === 0) {
+    const defaultTarget = path.join(process.cwd(), '**/*')
+    console.log(`no targets specified, defaulting to cwd ${defaultTarget}...`)
+    config.targets = [defaultTarget]
   }
 
   let eslResults = eslintProcess(config.targets, config)
@@ -232,21 +244,21 @@ SINCE LAST: ${printDelta(debtDelta)}
       addHistory(config, esl)
     }
   }
-// console.log(eslResults.eslintResults)
+  // console.log(eslResults.eslintResults)
   update(eslResults)
 
   if (program.watch) {
     const Gaze = require('gaze').Gaze
-    const gaze = new Gaze(config.targets);
+    const gaze = new Gaze(config.targets)
 
-    console.log('watching for changes...')
+    console.log('watching for changes...', config.targets)
 
-    gaze.on('all', function(event, filepath) {
+    gaze.on('all', function (event, filepath) {
       console.log(`got a change ${filepath}`)
 
       let newResults = eslintProcess([filepath], config).eslintResults.results[0]
 
-      console.log(filepath, newResults)
+      // console.log(filepath, newResults)
 
       // merge in our updated record
       eslResults.eslintResults.results = eslResults.eslintResults.results.map(
