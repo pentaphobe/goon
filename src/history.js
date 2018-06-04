@@ -2,7 +2,9 @@ const fs = require('fs')
 
 const loadHistory = (config) => {
   if (!fs.existsSync(config.report)) {
+    /* eslint-disable no-console */
     console.log(`no history file found at: ${config.report}`)
+    /* eslint-enable no-console */
     return []
   }
   const content = fs.readFileSync(config.report, 'utf8')
@@ -10,11 +12,11 @@ const loadHistory = (config) => {
 
   return lines
     // remove comment lines
-    .filter( line => line.match(/^\s*#/))
+    .filter(line => line.match(/^\s*#/))
     // remove blank lines
-    .filter( line => line.trim().length > 0)
+    .filter(line => line.trim().length > 0)
     // parse lines
-    .map( line => JSON.parse(line) )
+    .map(line => JSON.parse(line))
 }
 
 const addHistory = (config, entry) => {

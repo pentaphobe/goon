@@ -7,8 +7,7 @@
 
 'use strict'
 
-const targets = [
-]
+const targets = []
 
 const severity = {
   style: 1,
@@ -37,26 +36,32 @@ module.exports = {
       /**
        * Stylistic preferences a la ADS
        */
-      'quotes': ['error', 'single', {
-        'allowTemplateLiterals': true,
-      }],
+      quotes: [
+        'error',
+        'single',
+        {
+          allowTemplateLiterals: true
+        }
+      ],
       'jsx-quotes': ['error', 'prefer-single'],
-
 
       /**
        * Hardcore issues
        */
       // cyclomatic complexity
-      'complexity': ['error', {max: 5}],
-      'max-nested-callbacks': ['error', {max: 5}],
-      'max-params': ['error', {max: 10}],
-      'max-statements': ['error', {max: 15}],
-      'max-depth': ['error', {max: 4}],
+      complexity: ['error', { max: 5 }],
+      'max-nested-callbacks': ['error', { max: 5 }],
+      'max-params': ['error', { max: 10 }],
+      'max-statements': ['error', { max: 15 }],
+      'max-depth': ['error', { max: 4 }],
       // maximum line length
-      'max-len': ['error', {
-        code: 80
-      }],
-      'eqeqeq': ['error'],
+      'max-len': [
+        'error',
+        {
+          code: 80
+        }
+      ],
+      eqeqeq: ['error'],
       'no-extra-bind': ['error'],
       'no-global-assign': ['error'],
       'no-undef': ['error'],
@@ -64,16 +69,21 @@ module.exports = {
 
       'no-const-assign': ['error'],
 
-
-      'react/forbid-dom-props': ['error', {
-        forbid: [
-          // not included as it would penalise styled-components
-          // 'className',
-          'style'
-        ]
-      }],
-      'react/require-default-props': ['error', { forbidDefaultForRequired: true }],
-      'react/jsx-max-depth': ['error', {max: 2}]
+      'react/forbid-dom-props': [
+        'error',
+        {
+          forbid: [
+            // not included as it would penalise styled-components
+            // 'className',
+            'style'
+          ]
+        }
+      ],
+      'react/require-default-props': [
+        'error',
+        { forbidDefaultForRequired: true }
+      ],
+      'react/jsx-max-depth': ['error', { max: 2 }]
     },
 
     /**
@@ -97,8 +107,11 @@ module.exports = {
         {
           weight: severity.style,
           rules: [
-            'quotes', 'jsx-quotes',
-            'max-len', 'comma-dangle', 'no-multiple-empty-lines'
+            'quotes',
+            'jsx-quotes',
+            'max-len',
+            'comma-dangle',
+            'no-multiple-empty-lines'
           ]
         },
 
@@ -108,17 +121,15 @@ module.exports = {
         {
           weight: severity.practices,
           rules: [
-            'max-nested-callbacks', 'max-params',
-            'max-depth', 'no-extra-bind'
+            'max-nested-callbacks',
+            'max-params',
+            'max-depth',
+            'no-extra-bind'
           ]
         },
         {
           weight: severity.med,
-          rules: [
-            'complexity', 'max-statements',
-            'no-unused-vars',
-            'no-undef'
-          ]
+          rules: ['complexity', 'max-statements', 'no-unused-vars', 'no-undef']
         },
 
         //
@@ -126,18 +137,13 @@ module.exports = {
         //
         {
           weight: severity.high,
-          rules: [
-            'no-global-assign', 'no-const-assign'
-          ]
+          rules: ['no-global-assign', 'no-const-assign']
         },
         {
           weight: severity.critical,
-          rules: [
-            'eqeqeq',
-            'import/no-unresolved'
-          ]
+          rules: ['eqeqeq', 'import/no-unresolved']
         }
       ]
     }
-  },
+  }
 }

@@ -10,8 +10,8 @@ const customFormatter = (results, config) => {
 
   results = results || []
 
-  const weightLookup = config.weights.rules.reduce( (accum, entry) => {
-    entry.rules.forEach( rule => {
+  const weightLookup = config.weights.rules.reduce((accum, entry) => {
+    entry.rules.forEach(rule => {
       accum[rule] = entry.weight
     })
 
@@ -43,7 +43,7 @@ const customFormatter = (results, config) => {
   const convertDebt = obj => {
     let debtCount = 0
 
-    let mappedMessages = obj.messages.map( message => {
+    let mappedMessages = obj.messages.map(message => {
       let score = getRuleScore(message)
 
       debtCount += score
@@ -59,7 +59,7 @@ const customFormatter = (results, config) => {
     }
   }
 
-  let summary = results.results.reduce( (accum, result) => {
+  let summary = results.results.reduce((accum, result) => {
     let detail = mergeObject({}, result, convertDebt(result))
     delete detail.source
 
